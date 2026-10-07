@@ -34,22 +34,35 @@
   function initMap(){
     if (typeof L === 'undefined') { $('map').textContent='Peta memerlukan sambungan Internet untuk memuat Leaflet.'; return; }
     const map = state.map = L.map('map',{scrollWheelZoom:false,zoomControl:true}).setView([3.23,101.53],9);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    // Peta asas dengan pilihan. Jika jubin tidak dimuat, penanda dan label tetap kelihatan.
+    const street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
       attribution:'© OpenStreetMap contributors',maxZoom:18
-    }).addTo(map);
+    });
+    const terrain=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
+      attribution:'© OpenStreetMap, © CARTO',subdomains:'abcd',maxZoom:19
+    });
+    terrain.addTo(map);
+    L.control.layers({'Peta Ringkas':terrain,'OpenStreetMap':street},null,{position:'bottomright',collapsed:true}).addTo(map);
+    map.createPane('pbtLabels');map.getPane('pbtLabels').style.zIndex=650;
+    
     pbt.forEach(p => {
       const marker=L.circleMarker([p.lat,p.lng],{
         radius:11,fillColor:color(p.score),fillOpacity:.85,color:'#fff',weight:2.4
       }).addTo(map);
-      marker.bindTooltip(`<strong>${escapeHtml(p.name)}</strong><br>Indeks: ${pct(p.score)}<br><small>Penanda lokasi anggaran</small>`,{direction:'top'});
+      marker.bindTooltip(`<strong>${escapeHtml(p.short)}</strong><br>${pct(p.score)}`,{direction:'top',permanent:true,offset:[0,-10],className:'pbt-label',pane:'pbtLabels'});
       marker.on('click',()=>selectPbt(p.name));
       state.markers.set(p.name,marker);
     });
-    fitMap();
-    $('fitMap').addEventListener('click', fitMap);
+    // Leaflet mesti dikira semula selepas grid CSS selesai dilukis.
+    requestAnimationFrame(()=>{map.invalidateSize();fitMap();});
+    window.addEventListener('resize',()=>map.invalidateSize());
+    $('fitMap').addEventListener('click',()=>{map.invalidateSize();fitMap();});
   }
   function fitMap(){
-    if (state.map) state.map.fitBounds(L.latLngBounds(pbt.map(x=>[x.lat,x.lng])).pad(.18),{maxZoom:10});
+    if (state.map) {
+      state.map.invalidateSize();
+      state.map.fitBounds(L.latLngBounds(pbt.map(x=>[x.lat,x.lng])).pad(.28),{maxZoom:10,animate:false});
+    }
   }
   function refreshMarkers(){
     state.markers.forEach((marker,name)=>{
@@ -121,7 +134,7 @@
     $('lowIndicators').innerHTML=low.map((x)=>`<tr title="${escapeHtml(byCode[x.code].label)}"><td><strong>${escapeHtml(x.code)}</strong></td><td>${escapeHtml(x.label)}</td><td class="right alert-value">${pct(x.value)}</td></tr>`).join('');
   }
   function updateTable(){
-    const rows=matching();
+    const rows=matching().slice(0,5);
     $('pbtRows').innerHTML=rows.map(p=>{
       const ranking=pbt.findIndex(x=>x.name===p.name)+1;
       const selected=state.selected?.name===p.name;
@@ -158,6 +171,7 @@
     $('kpiTop').textContent=pct(pbt[0].score);
     $('kpiTopName').textContent=pbt.filter(p=>p.score===pbt[0].score).map(p=>p.short).join(' & ');
     $('kpiStatus').textContent=status(avg(pbt.map(p=>p.score)));
+    if ($('kpiExcellent')) $('kpiExcellent').textContent=`${pbt.filter(p=>status(p.score)==='Cemerlang').length}/${pbt.length}`;
     $('search').addEventListener('input',e=>{state.term=e.target.value.trim().toLocaleLowerCase('ms');state.selected=null;refresh();});
     $('reset').addEventListener('click',()=>{state.term='';state.selected=null;$('search').value='';refresh();fitMap();});
     $('clearSelect').addEventListener('click',()=>{state.selected=null;refresh();});

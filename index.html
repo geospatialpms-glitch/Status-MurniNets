@@ -8,7 +8,7 @@
   <title>Status MURNInets Negeri Selangor 2026 | SUO</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" integrity="sha256-p4NxAoJBhIIN+hmNHrzxWf9tCgnkX5N1CkE5g9G7gE=" crossorigin="" />
+  <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
@@ -34,20 +34,21 @@
     <div class="notice"><strong>Nota metodologi:</strong> Nilai peratus dalam dashboard ini ialah <strong>indeks ringkasan</strong> yang dikira daripada 48 markah indikator skala 1–3 (purata ÷ 3 × 100). Ia <strong>bukan pengesahan skor rasmi MURNInets</strong>. Kategori “Cemerlang” menggunakan ambang paparan contoh ≥80%. Tahun 2026 ialah label dashboard; tahun data dalam fail tidak disahkan.</div>
 
     <section class="kpis" aria-label="Petunjuk prestasi utama">
-      <article class="kpi"><div class="kpi-icon sky">♙</div><div><small>Jumlah PBT Dinilai</small><strong id="kpiPbt">12</strong><span>pihak berkuasa tempatan</span></div></article>
+      <article class="kpi"><div class="kpi-icon sky">♙</div><div><small>Jumlah PBT Dinilai</small><strong id="kpiPbt">12</strong><span>daripada 12 PBT</span></div></article>
       <article class="kpi"><div class="kpi-icon mint">▥</div><div><small>Indikator Unik</small><strong id="kpiIndicators">48</strong><span>merentas 6 dimensi</span></div></article>
       <article class="kpi"><div class="kpi-icon sky">⌁</div><div><small>Purata Indeks</small><strong id="kpiAverage">94.3%</strong><span>normalisasi skala 1–3</span></div></article>
       <article class="kpi"><div class="kpi-icon mint">✓</div><div><small>Status Paparan</small><strong class="status-text" id="kpiStatus">Cemerlang</strong><span>ambang contoh ≥80%</span></div></article>
+      <article class="kpi"><div class="kpi-icon sky">🏆</div><div><small>PBT Cemerlang</small><strong id="kpiExcellent">12/12</strong><span>100% daripada PBT</span></div></article>
       <article class="kpi"><div class="kpi-icon amber">★</div><div><small>PBT Tertinggi</small><strong id="kpiTop">96.5%</strong><span id="kpiTopName">Hulu Selangor & Sepang</span></div></article>
     </section>
 
     <div class="dashboard-grid">
-      <section class="panel map-panel" id="peta"><div class="panel-header"><div><h2>◉ Peta Indeks Mengikut PBT</h2><p>Penanda lokasi anggaran • bukan poligon sempadan PBT</p></div><div class="map-actions"><button id="fitMap" class="btn">Papar Semua</button></div></div><div id="map" role="img" aria-label="Peta lokasi PBT dengan markah indeks"></div><div class="map-bottom"><div class="legend"><b>Indeks (%)</b><div class="gradient"></div><div class="legend-labels"><span>91.0</span><span>93.0</span><span>95.0</span><span>96.5</span></div></div><span>Tekan penanda untuk memilih PBT</span></div></section>
+      <section class="panel map-panel" id="peta"><div class="panel-header"><div><h2>◉ Peta Skor MURNInets Mengikut PBT</h2><p>Lokasi PBT dan skor indeks 2026</p></div><div class="map-actions"><button id="fitMap" class="btn">Papar Semua</button></div></div><div id="map" role="img" aria-label="Peta lokasi PBT dengan markah indeks"></div><div class="map-bottom"><div class="legend"><b>Indeks (%)</b><div class="gradient"></div><div class="legend-labels"><span>91.0</span><span>93.0</span><span>95.0</span><span>96.5</span></div></div><span>Tekan penanda untuk memilih PBT</span></div></section>
       <section class="panel ranking-chart-panel" id="analisis"><div class="panel-header"><div><h2>▥ Skor Mengikut PBT</h2><p>Disusun tertinggi ke terendah</p></div><select id="chartMode" aria-label="Mod graf"><option value="bar">Carta Bar</option><option value="horizontal">Carta Mendatar</option></select></div><div class="chart-wrap"><canvas id="rankingChart"></canvas></div></section>
       <section class="panel donut-panel"><div class="panel-header"><div><h2>◕ Status Penilaian</h2><p>Ambang kategori bagi paparan contoh</p></div></div><div class="donut-layout"><div class="donut-chart"><canvas id="statusChart"></canvas><div class="donut-center"><strong id="donutCount">12</strong><small>PBT</small></div></div><div class="status-legend" id="statusLegend"></div></div></section>
       <section class="panel dim-panel"><div class="panel-header"><div><h2>⌁ Prestasi Mengikut Dimensi</h2><p>Purata indeks setiap dimensi</p></div></div><div class="dimension-body"><div class="radar-wrap"><canvas id="dimensionChart"></canvas></div><div class="dimension-list" id="dimensionList"></div></div></section>
       <section class="panel insight-panel" id="indikator"><div class="panel-header"><div><h2>⚑ Indikator Perlu Perhatian</h2><p>5 indikator dengan purata indeks terendah</p></div></div><div class="insight-table-wrap"><table><thead><tr><th>Kod</th><th>Indikator (label ringkas)</th><th class="right">Indeks</th></tr></thead><tbody id="lowIndicators"></tbody></table></div><div class="insight-note">Klik PBT pada peta, graf atau jadual untuk melihat prestasi khususnya.</div></section>
-      <section class="panel table-panel" id="kedudukan"><div class="panel-header"><div><h2>🏆 Kedudukan Semua PBT</h2><p>Tekan mana-mana baris untuk melihat maklumat lanjut</p></div><button id="exportCsv" class="btn btn-blue">↓ Eksport CSV</button></div><div class="table-wrap"><table><thead><tr><th>#</th><th>Pihak Berkuasa Tempatan</th><th class="right">Indeks (%)</th><th>Status Paparan</th><th></th></tr></thead><tbody id="pbtRows"></tbody></table></div></section>
+      <section class="panel table-panel" id="kedudukan"><div class="panel-header"><div><h2>🏆 Kedudukan PBT (Top 5)</h2><p>PBT dengan skor tertinggi</p></div><button id="exportCsv" class="btn btn-blue">↓ Eksport CSV</button></div><div class="table-wrap"><table><thead><tr><th>#</th><th>Pihak Berkuasa Tempatan</th><th class="right">Indeks (%)</th><th>Status Paparan</th><th></th></tr></thead><tbody id="pbtRows"></tbody></table></div></section>
       <section class="panel details-panel"><div class="panel-header"><div><h2>◈ Maklumat PBT Terpilih</h2><p id="selectedTitle">Semua PBT • Selangor</p></div><button id="clearSelect" class="btn">Kosongkan Pilihan</button></div><div class="selection-stats"><div><small>Indeks</small><strong id="selectedScore">94.3%</strong></div><div><small>Indikator</small><strong id="selectedIndicators">48</strong></div><div><small>Dimensi</small><strong>6</strong></div></div><div id="selectedDimensions" class="selected-dimensions"></div></section>
     </div>
     <footer>Sumber: <strong>analisa (10).xls</strong> • 12 PBT, 48 kod indikator • Lokasi peta dianggarkan, bukan sempadan rasmi • Peta asas © OpenStreetMap contributors • Dibina untuk mockup SUO Selangor</footer>
@@ -55,6 +56,6 @@
 </div>
 <script src="data.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="app.js"></script>
 </body></html>
