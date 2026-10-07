@@ -16,7 +16,7 @@
   const dimScore = (items,dim) => score(items.flatMap(p => indicators.filter(i => i.dimension === dim).map(i => p.ratings[i.code])));
   const color = v => v >= 96 ? '#00704d' : v >= 95 ? '#0b9c8b' : v >= 93 ? '#20a8cb' : '#438dea';
   const escapeHtml = value => String(value).replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  const state = {selected:null,term:'',rankingChart:null,dimensionChart:null,statusChart:null,markers:new Map(),map:null};
+  const state = {selected:null,term:'',rankingChart:null,dimensionChart:null,statusChart:null};
   const matching = () => pbt.filter(p => p.name.toLocaleLowerCase('ms').includes(state.term));
   const group = () => state.selected ? [state.selected] : matching().length ? matching() : pbt;
   const visibleName = () => state.selected ? state.selected.name : (state.term ? 'PBT hasil carian' : 'Semua PBT • Selangor');
@@ -31,47 +31,19 @@
   Chart.defaults.plugins.legend.display=false;
   Chart.defaults.plugins.tooltip.backgroundColor='#102e50';
 
-  function initMap(){
-    if (typeof L === 'undefined') { $('map').textContent='Peta memerlukan sambungan Internet untuk memuat Leaflet.'; return; }
-    const map = state.map = L.map('map',{scrollWheelZoom:false,zoomControl:true}).setView([3.23,101.53],9);
-    // Peta asas dengan pilihan. Jika jubin tidak dimuat, penanda dan label tetap kelihatan.
-    const street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
-      attribution:'© OpenStreetMap contributors',maxZoom:18
-    });
-    const terrain=L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',{
-      attribution:'© OpenStreetMap, © CARTO',subdomains:'abcd',maxZoom:19
-    });
-    terrain.addTo(map);
-    L.control.layers({'Peta Ringkas':terrain,'OpenStreetMap':street},null,{position:'bottomright',collapsed:true}).addTo(map);
-    map.createPane('pbtLabels');map.getPane('pbtLabels').style.zIndex=650;
-    
-    pbt.forEach(p => {
-      const marker=L.circleMarker([p.lat,p.lng],{
-        radius:11,fillColor:color(p.score),fillOpacity:.85,color:'#fff',weight:2.4
-      }).addTo(map);
-      marker.bindTooltip(`<strong>${escapeHtml(p.short)}</strong><br>${pct(p.score)}`,{direction:'top',permanent:true,offset:[0,-10],className:'pbt-label',pane:'pbtLabels'});
-      marker.on('click',()=>selectPbt(p.name));
-      state.markers.set(p.name,marker);
-    });
-    // Leaflet mesti dikira semula selepas grid CSS selesai dilukis.
-    requestAnimationFrame(()=>{map.invalidateSize();fitMap();});
-    window.addEventListener('resize',()=>map.invalidateSize());
-    $('fitMap').addEventListener('click',()=>{map.invalidateSize();fitMap();});
-  }
-  function fitMap(){
-    if (state.map) {
-      state.map.invalidateSize();
-      state.map.fitBounds(L.latLngBounds(pbt.map(x=>[x.lat,x.lng])).pad(.28),{maxZoom:10,animate:false});
-    }
-  }
-  function refreshMarkers(){
-    state.markers.forEach((marker,name)=>{
-      const p=pbt.find(x=>x.name===name);
-      const active=!state.selected||state.selected.name===name;
-      const found=!state.term||p.name.toLocaleLowerCase('ms').includes(state.term);
-      marker.setStyle({radius:state.selected?.name===name?15:11,fillOpacity:active&&found?.91:.19,opacity:active&&found?1:.45,weight:state.selected?.name===name?4:2.4});
-    });
-    if(state.selected&&state.map) state.map.panTo([state.selected.lat,state.selected.lng],{animate:true});
+  function updateOverview(){
+    const list=$('overviewList');
+    const rows=matching();
+    const overall=rows.length ? avg(rows.map(p=>p.score)) : 0;
+    $('overviewAverage').textContent=rows.length ? pct(overall) : '—';
+    $('overviewHighest').textContent=rows.length ? pct(Math.max(...rows.map(p=>p.score))) : '—';
+    list.innerHTML=rows.map((p)=>{
+      const rank=pbt.findIndex(x=>x.name===p.name)+1;
+      const selected=state.selected?.name===p.name;
+      const w=Math.max(0,Math.min(100,p.score));
+      return `<button type="button" class="overview-item ${selected?'is-selected':''}" data-pbt="${escapeHtml(p.name)}" aria-pressed="${selected?'true':'false'}"><span class="overview-rank">${rank}</span><span class="overview-name">${escapeHtml(p.name)}</span><span class="overview-score">${pct(p.score)}</span><span class="overview-track"><span class="overview-fill" style="width:${w}%;background:${color(p.score)}"></span></span></button>`;
+    }).join('')||'<p class="overview-empty">Tiada PBT sepadan dengan carian.</p>';
+    list.querySelectorAll('[data-pbt]').forEach(btn=>btn.addEventListener('click',()=>selectPbt(btn.dataset.pbt)));
   }
   function initCharts(){
     const ranking=$('rankingChart').getContext('2d');
@@ -93,7 +65,7 @@
     });
     $('chartMode').addEventListener('change',e=>{
       const mode=e.target.value;
-      state.rankingChart.config.type=mode==='horizontal'?'bar':'bar';
+      state.rankingChart.config.type='bar';
       state.rankingChart.options.indexAxis=mode==='horizontal'?'y':'x';
       state.rankingChart.options.scales.x=mode==='horizontal'?{min:0,max:100,ticks:{callback:v=>v+'%'},grid:{color:'#eaf0f7'}}:{ticks:{font:{size:9},maxRotation:50,minRotation:35},grid:{display:false}};
       state.rankingChart.options.scales.y=mode==='horizontal'?{ticks:{font:{size:9}},grid:{display:false}}:{min:0,max:100,ticks:{callback:v=>v+'%',stepSize:20,font:{size:9}},grid:{color:'#eaf0f7'}};
@@ -148,7 +120,7 @@
     $('selectedScore').textContent=pct(avg(rows.map(p=>p.score)));
     $('selectedIndicators').textContent=indicators.length;
   }
-  function refresh(){updateRanking();updateStatus();updateDimensions();updateLowIndicators();updateTable();updateSelection();refreshMarkers();}
+  function refresh(){updateRanking();updateStatus();updateDimensions();updateLowIndicators();updateTable();updateSelection();updateOverview();}
   function selectPbt(name){
     const found=pbt.find(p=>p.name===name);
     if(!found)return;
@@ -173,11 +145,11 @@
     $('kpiStatus').textContent=status(avg(pbt.map(p=>p.score)));
     if ($('kpiExcellent')) $('kpiExcellent').textContent=`${pbt.filter(p=>status(p.score)==='Cemerlang').length}/${pbt.length}`;
     $('search').addEventListener('input',e=>{state.term=e.target.value.trim().toLocaleLowerCase('ms');state.selected=null;refresh();});
-    $('reset').addEventListener('click',()=>{state.term='';state.selected=null;$('search').value='';refresh();fitMap();});
+    $('reset').addEventListener('click',()=>{state.term='';state.selected=null;$('search').value='';refresh();});
     $('clearSelect').addEventListener('click',()=>{state.selected=null;refresh();});
     $('exportCsv').addEventListener('click',downloadCSV);
     document.querySelectorAll('.nav-item').forEach(a=>a.addEventListener('click',()=>{document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));a.classList.add('active');}));
-    initCharts();initMap();refresh();
+    initCharts();refresh();
   }
   init();
 })();
